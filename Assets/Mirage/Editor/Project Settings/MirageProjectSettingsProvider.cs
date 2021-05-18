@@ -1,8 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Mirage.Logging;
 using UnityEditor;
 using UnityEngine;
 
-namespace Mirage
+namespace Mirage.Settings
 {
     public class MirageProjectSettingsProvider : SettingsProvider
     {
@@ -20,72 +24,126 @@ namespace Mirage
         {
             if (settings == null)
             {
-                settings = MirageProjectSettings.Get();
+                settings = SettingsLoader.Load();
             }
 
             EditorGUILayout.Space();
 
             EditorGUI.BeginChangeCheck();
-            LogType allLogType = LogType.Warning;
+            LogType allLogType = GetAllLogLevel();
 
-            bool same = true;
-            for (int i = 0; i < settings.logLevels.Count; i++)
-            {
-                if (i == 0)
-                {
-                    allLogType = settings.logLevels[i].level;
-                }
 
-                for (int j = i; j < settings.logLevels.Count; j++)
-                {
-                    if (settings.logLevels[i].level != settings.logLevels[j].level)
-                    {
-                        same = false;
-                        break;
-                    }
-                }
-
-                if (!same)
-                {
-                    break;
-                }
-            }
-
-            if (!same)
-            {
-                allLogType = LogType.Warning;
-            }
 
             using (new GUIScope())
             {
                 EditorGUILayout.HelpBox("You may need to run your game a few times for this list to properly populate!", MessageType.Info);
-                allLogType = (LogType)EditorGUILayout.EnumPopup("Set All", allLogType);
-                if (EditorGUI.EndChangeCheck())
+                using (var scope = new EditorGUI.ChangeCheckScope())
                 {
-                    for (int i = 0; i < settings.logLevels.Count; i++)
+                    allLogType = (LogType)EditorGUILayout.EnumPopup("Set All", allLogType);
+                    if (scope.changed)
                     {
-                        MirageProjectSettings.Level levelInfo = settings.logLevels[i];
-                        levelInfo.level = allLogType;
-                        settings.logLevels[i] = levelInfo;
-                        settings.EditorSave();
+                        SetAllLogLevels(allLogType);
                     }
                 }
 
                 EditorGUILayout.Space();
 
-                for (int i = 0; i < settings.logLevels.Count; i++)
+                foreach (IGrouping<string, MirageProjectSettings.LoggerType> group in settings.logLevels.GroupBy(x => x.Namespace))
                 {
-                    EditorGUI.BeginChangeCheck();
-                    LogType level = settings.logLevels[i].level;
-                    level = (LogType)EditorGUILayout.EnumPopup(settings.logLevels[i].name, level);
-                    if (EditorGUI.EndChangeCheck())
+                    EditorGUILayout.LabelField(group.Key, EditorStyles.boldLabel);
+
+                    foreach (MirageProjectSettings.LoggerType loggerType in group)
                     {
-                        MirageProjectSettings.Level levelInfo = settings.logLevels[i];
-                        levelInfo.level = level;
-                        settings.logLevels[i] = levelInfo;
-                        settings.EditorSave();
+                        using (var scope = new EditorGUI.ChangeCheckScope())
+                        {
+                            var level = (LogType)EditorGUILayout.EnumPopup(loggerType.name, loggerType.level);
+
+                            if (scope.changed)
+                            {
+                                loggerType.level = level;
+                                ILogger logger = LogFactory.GetLogger(loggerType.FullName);
+                                logger.filterLogType = level;
+                                SettingsLoader.EditorSave();
+                            }
+                        }
                     }
+
+                    EditorGUILayout.Space();
                 }
+
+                EditorGUILayout.Space();
+                if (GUILayout.Button("Delete All"))
+                {
+                    settings.logLevels.Clear();
+                    SettingsLoader.EditorSave();
+                }
+                if (GUILayout.Button("Find All type using logger"))
+                {
+                    Debug.Log(LogFactory.loggers.Count);
+                    BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
+
+                    System.Reflection.Assembly[] loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+                    foreach (System.Reflection.Assembly asm in loadedAssemblies)
+                    {
+                        foreach (Type type in asm.GetTypes())
+                        {
+                            foreach (System.Reflection.FieldInfo field in type.GetFields(flags))
+                            {
+                                if (field.FieldType == typeof(ILogger))
+                                {
+                                    if (field.IsStatic)
+                                    {
+                                        var value = (ILogger)field.GetValue(null);
+                                        Debug.Log($"{type} {value.filterLogType}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    SettingsLoader.AddLogLevelsFromFactory();
+
+                    Debug.Log(LogFactory.loggers.Count);
+                }
+            }
+        }
+
+
+        private void SetAllLogLevels(LogType allLogType)
+        {
+            foreach (MirageProjectSettings.LoggerType loggerType in settings.logLevels)
+            {
+                loggerType.level = allLogType;
+                ILogger logger = LogFactory.GetLogger(loggerType.FullName);
+                logger.filterLogType = allLogType;
+                SettingsLoader.EditorSave();
+            }
+        }
+
+        private LogType GetAllLogLevel()
+        {
+            List<MirageProjectSettings.LoggerType> levels = settings.logLevels;
+            if (levels.Count == 0) { return LogType.Warning; }
+
+            bool allSame = true;
+            LogType firstLevel = levels[0].level;
+            foreach (MirageProjectSettings.LoggerType level in levels)
+            {
+                if (level.level != firstLevel)
+                {
+                    allSame = false;
+                    break;
+                }
+            }
+
+
+            if (allSame)
+            {
+                return firstLevel;
+            }
+            else
+            {
+                // -1 => no type, will show as empty dropdown
+                return (LogType)(-1);
             }
         }
 
