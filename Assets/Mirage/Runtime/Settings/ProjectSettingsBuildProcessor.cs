@@ -9,7 +9,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-namespace Mirage
+namespace Mirage.Settings
 {
     internal class ProjectSettingsBuildProcessor : IPreprocessBuildWithReport, IPostprocessBuildWithReport
     {
@@ -35,7 +35,7 @@ namespace Mirage
 
             for (int i = 0; i < objects.Count; i++)
             {
-                if (File.Exists($"{MirageProjectSettings.ROOT_FOLDER}/{names[i]}.asset"))
+                if (File.Exists($"{SettingsLoader.SettingsFolder}/{names[i]}.asset"))
                 {
                     ScriptableObject setting = objects[i];
 
@@ -45,14 +45,14 @@ namespace Mirage
                         Directory.CreateDirectory($"{Application.dataPath}/Resources");
                     }
 
-                    if (!Directory.Exists($"{Application.dataPath}/Resources/{MirageProjectSettings.PACKAGE_NAME}"))
+                    if (!Directory.Exists($"{Application.dataPath}/Resources/{SettingsLoader.PACKAGE_NAME}"))
                     {
                         createdPackageFolder = true;
-                        Directory.CreateDirectory($"{Application.dataPath}/Resources/{MirageProjectSettings.PACKAGE_NAME}");
+                        Directory.CreateDirectory($"{Application.dataPath}/Resources/{SettingsLoader.PACKAGE_NAME}");
                     }
 
                     setting.hideFlags = HideFlags.None;
-                    AssetDatabase.CreateAsset(setting, $"Assets/Resources/{MirageProjectSettings.PACKAGE_NAME}/{names[i]}.asset");
+                    AssetDatabase.CreateAsset(setting, $"Assets/Resources/{SettingsLoader.PACKAGE_NAME}/{names[i]}.asset");
                     AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
                 }
             }
@@ -61,7 +61,7 @@ namespace Mirage
         void IPostprocessBuildWithReport.OnPostprocessBuild(BuildReport report)
         {
             string resourcesPath = $"{Application.dataPath}/Resources";
-            string packagePath = $"{resourcesPath}/{MirageProjectSettings.PACKAGE_NAME}";
+            string packagePath = $"{resourcesPath}/{SettingsLoader.PACKAGE_NAME}";
 
             if (createdResources && createdPackageFolder && Directory.Exists(packagePath))
             {
