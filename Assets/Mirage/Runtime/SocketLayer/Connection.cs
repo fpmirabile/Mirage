@@ -109,7 +109,7 @@ namespace Mirage.SocketLayer
 
         EndPoint IConnection.EndPoint => EndPoint;
 
-        internal Connection(Peer peer, EndPoint endPoint, IDataHandler dataHandler, Config config, Time time, BufferPool bufferPool, ILogger logger, Metrics metrics)
+        internal Connection(Peer peer, EndPoint endPoint, IDataHandler dataHandler, Config config, Time time, Pool<ByteBuffer> bufferPool, ILogger logger, Metrics metrics)
         {
             this.peer = peer;
             this.logger = logger ?? Debug.unityLogger;

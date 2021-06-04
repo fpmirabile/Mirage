@@ -45,12 +45,9 @@ namespace Mirage.SocketLayer
         /// Max size of a packet (excluding peer header)
         /// </summary>
         public int Mtu => BufferSize - HEADER_SIZE;
-        /// <summary>
-        /// Peer+ udp socket size
-        /// </summary>
         const int HEADER_SIZE = 20 + 8;
         /// <summary>
-        /// Size of buffers, Should be Mtu + header size + header size for socket
+        /// Size of buffers, Should be Mtu + header size for socket
         /// <para>Udp Packet is 1280</para>
         /// </summary>
         public int BufferSize = 1280;

@@ -25,7 +25,7 @@ namespace Mirage.SocketLayer.Tests.AckSystemTests
     public class AckSystemTestBase
     {
         System.Random rand = new System.Random();
-        protected BufferPool bufferPool = new BufferPool(1300, 100, 1000);
+        protected Pool<ByteBuffer> bufferPool = new Pool<ByteBuffer>(ByteBuffer.CreateNew, 1300, 100, 1000);
 
         protected byte[] createRandomData(int id)
         {
