@@ -130,4 +130,47 @@ namespace Mirage
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public sealed class WeaverIgnoreAttribute : PropertyAttribute { }
+
+    /// <summary>
+    /// Tells weaver how many bits to sue for field
+    /// <para>Only works with interager fields (byte, int, ulong, etc)</para>
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter)]
+    public class BitCountAttribute : Attribute
+    {
+        public int BitCount { get; set; }
+
+        public BitCountAttribute(int bitCount)
+        {
+            BitCount = bitCount;
+        }
+    }
+
+    /// <summary>
+    /// Tells weaver how many bits to sue for field
+    /// <para>Only works with interager fields (byte, int, ulong, etc)</para>
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter)]
+    public class PackFloatAttribute : Attribute
+    {
+        /// <summary>
+        /// How many bits
+        /// </summary>
+        public int BitCount { get; set; }
+        /// <summary>
+        /// Smallest value
+        /// <para><b>Example:</b> Resolution of 0.1 means values will be rounded to that: 1.53 will be sent at 1.5</para>
+        /// <para>Values will be rounded to nearest value, so 1.58 will around up to 1.6</para>
+        /// </summary>
+        public float Resolution { get; set; }
+
+        public bool Signed { get; set; }
+
+        public PackFloatAttribute(int bitCount, float resolution, bool signed)
+        {
+            BitCount = bitCount;
+            Resolution = resolution;
+            Signed = signed;
+        }
+    }
 }
